@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1517">
+<title>صلاة الفرقان</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+/* Layout: one full-height reading stage, text scrolls past a fixed reading line; dark night-prayer look by design */
+:root{
+  --bg:#0f1517; --bg2:#172024; --line:#24323a;
+  --fg:#ece6d8; --dim:#6f7d80; --accent:#86c2ad; --accent-soft:rgba(134,194,173,.14);
+  --quran:"Amiri Quran","Amiri","Traditional Arabic",serif;
+  --ui:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);margin:0;overflow:hidden;-webkit-tap-highlight-color:transparent}
+button,input{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- setup screen ---------- */
+#setup{height:100%;overflow-y:auto;padding-inline:16px;box-sizing:border-box}
+.wrap{max-width:520px;margin:0 auto;padding-block:28px 40px;display:flex;flex-direction:column;gap:22px}
+.head h1{font-family:var(--quran);font-weight:400;font-size:2.4rem;margin:0;line-height:1.5;text-wrap:balance}
+.head p{margin:4px 0 0;color:var(--dim);font-size:.92rem;line-height:1.7}
+.plan{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.plan .row{display:flex;justify-content:space-between;gap:12px;font-size:.92rem}
+.plan .row span:last-child{color:var(--dim);font-variant-numeric:tabular-nums}
+.plan .tot{border-top:1px solid var(--line);padding-top:8px;font-weight:600}
+.plan .tot span:last-child{color:var(--accent)}
+.group{display:flex;flex-direction:column;gap:14px}
+.group h2{font-size:.8rem;letter-spacing:.04em;color:var(--dim);font-weight:500;margin:0}
+.field{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}
+.field label{font-size:.95rem}
+.field output{font-variant-numeric:tabular-nums;color:var(--accent);font-size:.9rem;min-width:4.5em;text-align:left}
+.field input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.durs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.dur{display:flex;flex-direction:column;gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.dur span{font-size:.82rem;color:var(--dim)}
+.dur input{background:transparent;border:0;color:var(--fg);font-size:1.05rem;width:100%;font-variant-numeric:tabular-nums}
+select{background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.95rem;width:100%}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:.95rem}
+.toggle input{width:20px;height:20px;accent-color:var(--accent)}
+#go{background:var(--accent);color:#0f1517;border:0;border-radius:12px;font-size:1.1rem;font-weight:600;padding:15px;cursor:pointer}
+#go:active{transform:scale(.99)}
+.note{font-size:.82rem;color:var(--dim);line-height:1.8;margin:0}
+
+/* ---------- prayer screen ---------- */
+#stage{position:fixed;inset:0;display:flex;flex-direction:column}
+#bar{position:relative;z-index:3;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 10px;display:flex;align-items:center;gap:12px;background:linear-gradient(var(--bg) 70%,transparent)}
+#phase{font-size:.9rem;font-weight:500;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#remain{font-size:.85rem;color:var(--dim);font-variant-numeric:tabular-nums}
+#prog{position:absolute;inset-inline:16px;bottom:4px;height:2px;background:var(--line);border-radius:2px;overflow:hidden}
+#prog i{display:block;height:100%;width:0;background:var(--accent);margin-inline-start:0}
+#view{position:relative;flex:1;overflow:hidden}
+#track{position:absolute;inset-inline:0;top:0;padding-inline:20px;will-change:transform}
+.ay{font-family:var(--quran);line-height:2.15;text-align:center;padding-block:.35em;color:var(--dim);transition:color .5s}
+.ay.on{color:var(--fg)}
+.ay .n{color:var(--accent);font-size:.8em;white-space:nowrap}
+.sep{font-family:var(--ui);font-size:.85rem;color:var(--accent);text-align:center;padding-block:1.2em .6em;letter-spacing:.02em}
+#guide{position:absolute;inset-inline:0;height:0;border-top:1px dashed var(--accent-soft);pointer-events:none}
+#fadeT,#fadeB{position:absolute;inset-inline:0;height:16%;pointer-events:none;z-index:2}
+#fadeT{top:0;background:linear-gradient(var(--bg),transparent)}
+#fadeB{bottom:0;background:linear-gradient(transparent,var(--bg))}
+
+#stage.rotL,#stage.rotR{inset:auto;top:0;left:0;transform-origin:0 0}
+#stage.rotL{transform:rotate(90deg) translateY(-100%)}
+#stage.rotR{transform:rotate(-90deg) translateX(-100%)}
+#stage.rotL #bar,#stage.rotR #bar{padding-top:10px}
+.spd{display:flex;align-items:center;gap:10px}
+.spd output{min-width:3.5em;text-align:center;font-variant-numeric:tabular-nums;color:var(--accent)}
+#pose{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding-inline:24px;text-align:center;background:var(--bg);z-index:4}
+#poseName{font-family:var(--quran);font-size:clamp(2.2rem,9vw,3.6rem);line-height:1.5}
+#poseHint{font-family:var(--quran);font-size:clamp(1.2rem,5vw,1.6rem);color:var(--dim);line-height:1.9;max-width:28ch}
+#ring{width:120px;height:120px}
+#ring circle{fill:none;stroke-width:4}
+#ring .bgc{stroke:var(--line)}
+#ring .fgc{stroke:var(--accent);stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%}
+#ring text{fill:var(--fg);font-family:var(--ui);font-size:30px;font-variant-numeric:tabular-nums}
+
+#paused{position:absolute;inset:0;z-index:6;background:rgba(15,21,23,.86);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding-inline:24px}
+#paused p{margin:0;font-size:1.05rem}
+.ctl{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.ctl button{background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:11px 16px;font-size:.95rem;cursor:pointer}
+.ctl button.pri{background:var(--accent);color:#0f1517;border-color:var(--accent);font-weight:600}
+#tapHint{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);inset-inline:0;text-align:center;font-size:.78rem;color:var(--dim);z-index:5;pointer-events:none;transition:opacity 1s}
+@media (prefers-reduced-motion:reduce){.ay{transition:none}}
+</style>
+</head>
+<body>
+
+<section id="setup">
+ <div class="wrap">
+  <div class="head">
+   <h1>صلاة الفرقان</h1>
+   <p>ركعتان بين المغرب والعشاء. تعرض الآيات تلقائيًا بسرعة القراءة، وتحسب الركوع والسجود والقيام للركعة الثانية.</p>
+  </div>
+
+  <div class="plan" id="plan"></div>
+
+  <div class="group">
+   <h2>القراءة</h2>
+   <div class="field">
+    <label for="speed">سرعة القراءة</label><output id="speedOut"></output>
+    <input type="range" id="speed" min="0.5" max="3" step="0.1" value="1">
+   </div>
+   <div class="field">
+    <label for="size">حجم الخط</label><output id="sizeOut"></output>
+    <input type="range" id="size" min="22" max="48" step="1" value="32">
+   </div>
+   <div class="field">
+    <label for="orient">اتجاه الشاشة أثناء العرض</label><span></span>
+    <select id="orient" style="grid-column:1/-1">
+     <option value="left">بالعرض (أعلى الجوال جهة اليسار)</option>
+     <option value="right">بالعرض (أعلى الجوال جهة اليمين)</option>
+     <option value="portrait">بالطول</option>
+    </select>
+   </div>
+   <div class="toggle"><label for="showFatiha">عرض سورة الفاتحة على الشاشة</label><input type="checkbox" id="showFatiha" checked></div>
+  </div>
+
+  <div class="group">
+   <h2>مدة كل ركن (بالثواني)</h2>
+   <div class="durs">
+    <label class="dur"><span>الاستعداد قبل البدء</span><input id="d_ready" type="number" min="0" max="60" inputmode="numeric"></label>
+    <label class="dur"><span>تكبيرة الإحرام والاستفتاح</span><input id="d_takbir" type="number" min="0" max="60" inputmode="numeric"></label>
+    <label class="dur"><span>الركوع</span><input id="d_ruku" type="number" min="1" max="60" inputmode="numeric"></label>
+    <label class="dur"><span>الرفع من الركوع</span><input id="d_rise" type="number" min="1" max="60" inputmode="numeric"></label>
+    <label class="dur"><span>السجدة</span><input id="d_sujud" type="number" min="1" max="60" inputmode="numeric"></label>
+    <label class="dur"><span>الجلسة بين السجدتين</span><input id="d_jalsa" type="number" min="1" max="60" inputmode="numeric"></label>
+    <label class="dur"><span>القيام للركعة الثانية</span><input id="d_stand" type="number" min="1" max="30" inputmode="numeric"></label>
+    <label class="dur"><span>التشهد والتسليم</span><input id="d_tash" type="number" min="5" max="180" inputmode="numeric"></label>
+   </div>
+  </div>
+
+  <button id="go">ابدأ الصلاة</button>
+  <p class="note">ضع الجوال أمامك قبل التكبير. المس الشاشة في أي وقت للإيقاف المؤقت أو للانتقال لركن سابق أو تالٍ. الشاشة تبقى مضاءة أثناء العرض إذا سمح المتصفح بذلك.</p>
+ </div>
+</section>
+
+<section id="stage" hidden>
+ <div id="bar"><span id="phase"></span><span id="remain"></span><div id="prog"><i></i></div></div>
+ <div id="view">
+  <div id="track"></div>
+  <div id="guide"></div>
+  <div id="fadeT"></div><div id="fadeB"></div>
+  <div id="pose" hidden>
+   <svg id="ring" viewBox="0 0 120 120"><circle class="bgc" cx="60" cy="60" r="54"/><circle class="fgc" cx="60" cy="60" r="54"/><text id="ringT" x="60" y="70" text-anchor="middle">0</text></svg>
+   <div id="poseName"></div>
+   <div id="poseHint"></div>
+  </div>
+  <div id="tapHint">المس الشاشة للإيقاف المؤقت</div>
+  <div id="paused" hidden>
+   <p>متوقف مؤقتًا</p>
+   <div class="ctl">
+    <button id="prev">الركن السابق</button>
+    <button id="resume" class="pri">متابعة</button>
+    <button id="next">الركن التالي</button>
+   </div>
+   <div class="ctl spd"><button id="slower">أبطأ</button><output id="liveSpeed"></output><button id="faster">أسرع</button></div>
+   <div class="ctl"><button id="restart">من البداية</button><button id="exit">إنهاء</button></div>
+  </div>
+ </div>
+</section>
+
+<script>
+document.documentElement.dir="rtl";document.documentElement.lang="ar";
+(function(){
+/* ---------------- النصوص ---------------- */
+const FATIHA=[
+ "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ",
+ "الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ",
+ "الرَّحْمَٰنِ الرَّحِيمِ",
+ "مَالِكِ يَوْمِ الدِّينِ",
+ "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+ "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ",
+ "صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ"
+].map((t,i)=>({n:i+1,t}));
+
+const FURQAN=[
+ "تَبَارَكَ الَّذِي جَعَلَ فِي السَّمَاءِ بُرُوجًا وَجَعَلَ فِيهَا سِرَاجًا وَقَمَرًا مُنِيرًا",
+ "وَهُوَ الَّذِي جَعَلَ اللَّيْلَ وَالنَّهَارَ خِلْفَةً لِمَنْ أَرَادَ أَنْ يَذَّكَّرَ أَوْ أَرَادَ شُكُورًا",
+ "وَعِبَادُ الرَّحْمَٰنِ الَّذِينَ يَمْشُونَ عَلَى الْأَرْضِ هَوْنًا وَإِذَا خَاطَبَهُمُ الْجَاهِلُونَ قَالُوا سَلَامًا",
+ "وَالَّذِينَ يَبِيتُونَ لِرَبِّهِمْ سُجَّدًا وَقِيَامًا",
+ "وَالَّذِينَ يَقُولُونَ رَبَّنَا اصْرِفْ عَنَّا عَذَابَ جَهَنَّمَ ۖ إِنَّ عَذَابَهَا كَانَ غَرَامًا",
+ "إِنَّهَا سَاءَتْ مُسْتَقَرًّا وَمُقَامًا",
+ "وَالَّذِينَ إِذَا أَنْفَقُوا لَمْ يُسْرِفُوا وَلَمْ يَقْتُرُوا وَكَانَ بَيْنَ ذَٰلِكَ قَوَامًا",
+ "وَالَّذِينَ لَا يَدْعُونَ مَعَ اللَّهِ إِلَٰهًا آخَرَ وَلَا يَقْتُلُونَ النَّفْسَ الَّتِي حَرَّمَ اللَّهُ إِلَّا بِالْحَقِّ وَلَا يَزْنُونَ ۚ وَمَنْ يَفْعَلْ ذَٰلِكَ يَلْقَ أَثَامًا",
+ "يُضَاعَفْ لَهُ الْعَذَابُ يَوْمَ الْقِيَامَةِ وَيَخْلُدْ فِيهِ مُهَانًا",
+ "إِلَّا مَنْ تَابَ وَآمَنَ وَعَمِلَ عَمَلًا صَالِحًا فَأُولَٰئِكَ يُبَدِّلُ اللَّهُ سَيِّئَاتِهِمْ حَسَنَاتٍ ۗ وَكَانَ اللَّهُ غَفُورًا رَحِيمًا",
+ "وَمَنْ تَابَ وَعَمِلَ صَالِحًا فَإِنَّهُ يَتُوبُ إِلَى اللَّهِ مَتَابًا",
+ "وَالَّذِينَ لَا يَشْهَدُونَ الزُّورَ وَإِذَا مَرُّوا بِاللَّغْوِ مَرُّوا كِرَامًا",
+ "وَالَّذِينَ إِذَا ذُكِّرُوا بِآيَاتِ رَبِّهِمْ لَمْ يَخِرُّوا عَلَيْهَا صُمًّا وَعُمْيَانًا",
+ "وَالَّذِينَ يَقُولُونَ رَبَّنَا هَبْ لَنَا مِنْ أَزْوَاجِنَا وَذُرِّيَّاتِنَا قُرَّةَ أَعْيُنٍ وَاجْعَلْنَا لِلْمُتَّقِينَ إِمَامًا",
+ "أُولَٰئِكَ يُجْزَوْنَ الْغُرْفَةَ بِمَا صَبَرُوا وَيُلَقَّوْنَ فِيهَا تَحِيَّةً وَسَلَامًا",
+ "خَالِدِينَ فِيهَا ۚ حَسُنَتْ مُسْتَقَرًّا وَمُقَامًا",
+ "قُلْ مَا يَعْبَأُ بِكُمْ رَبِّي لَوْلَا دُعَاؤُكُمْ ۖ فَقَدْ كَذَّبْتُمْ فَسَوْفَ يَكُونُ لِزَامًا"
+].map((t,i)=>({n:61+i,t}));
+
+const MUMINUN=[
+ "قَدْ أَفْلَحَ الْمُؤْمِنُونَ",
+ "الَّذِينَ هُمْ فِي صَلَاتِهِمْ خَاشِعُونَ",
+ "وَالَّذِينَ هُمْ عَنِ اللَّغْوِ مُعْرِضُونَ",
+ "وَالَّذِينَ هُمْ لِلزَّكَاةِ فَاعِلُونَ",
+ "وَالَّذِينَ هُمْ لِفُرُوجِهِمْ حَافِظُونَ",
+ "إِلَّا عَلَىٰ أَزْوَاجِهِمْ أَوْ مَا مَلَكَتْ أَيْمَانُهُمْ فَإِنَّهُمْ غَيْرُ مَلُومِينَ",
+ "فَمَنِ ابْتَغَىٰ وَرَاءَ ذَٰلِكَ فَأُولَٰئِكَ هُمُ الْعَادُونَ",
+ "وَالَّذِينَ هُمْ لِأَمَانَاتِهِمْ وَعَهْدِهِمْ رَاعُونَ",
+ "وَالَّذِينَ هُمْ عَلَىٰ صَلَوَاتِهِمْ يُحَافِظُونَ",
+ "أُولَٰئِكَ هُمُ الْوَارِثُونَ",
+ "الَّذِينَ يَرِثُونَ الْفِرْدَوْسَ هُمْ فِيهَا خَالِدُونَ",
+ "وَلَقَدْ خَلَقْنَا الْإِنْسَانَ مِنْ سُلَالَةٍ مِنْ طِينٍ",
+ "ثُمَّ جَعَلْنَاهُ نُطْفَةً فِي قَرَارٍ مَكِينٍ",
+ "ثُمَّ خَلَقْنَا النُّطْفَةَ عَلَقَةً فَخَلَقْنَا الْعَلَقَةَ مُضْغَةً فَخَلَقْنَا الْمُضْغَةَ عِظَامًا فَكَسَوْنَا الْعِظَامَ لَحْمًا ثُمَّ أَنْشَأْنَاهُ خَلْقًا آخَرَ ۚ فَتَبَارَكَ اللَّهُ أَحْسَنُ الْخَالِقِينَ"
+].map((t,i)=>({n:1+i,t}));
+const BASMALA={n:0,t:"بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ"};
+
+/* ---------------- التوقيت ---------------- */
+// زمن الآية = عدد الحروف × زمن الحرف + وقفة نفس عند نهاية الآية، والكل مقسوم على معامل السرعة
+const SEC_PER_LETTER=0.2, BREATH=1.3, AMEEN=2;
+function letters(t){return (t.match(/[ء-يٱ]/g)||[]).length}
+function ayahTime(a,speed){return {read:letters(a.t)*SEC_PER_LETTER/speed, breath:BREATH/speed}}
+
+const DEF={speed:1,size:32,showFatiha:true,d_ready:5,d_takbir:6,d_ruku:10,d_rise:5,d_sujud:10,d_jalsa:5,d_stand:3,d_tash:45,orient:"left"};
+let S=Object.assign({},DEF);
+try{const s=JSON.parse(localStorage.getItem("furqan-settings")||"null");if(s)S=Object.assign(S,s)}catch(e){}
+function save(){try{localStorage.setItem("furqan-settings",JSON.stringify(S))}catch(e){}}
+
+const AR=n=>String(n).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[d]);
+function fmt(sec){sec=Math.max(0,Math.round(sec));const m=Math.floor(sec/60),s=sec%60;return AR(m)+":"+AR(String(s).padStart(2,"0"))}
+
+const POSE={
+ ready:["استعد","ضع الجوال أمامك وقف مستقبلًا القبلة"],
+ takbir:["الله أكبر","دعاء الاستفتاح ثم الاستعاذة"],
+ ruku:["الركوع","سبحان ربي العظيم"],
+ rise:["الرفع من الركوع","سمع الله لمن حمده، ربنا ولك الحمد"],
+ sujud1:["السجدة الأولى","سبحان ربي الأعلى"],
+ jalsa:["الجلسة بين السجدتين","رب اغفر لي"],
+ sujud2:["السجدة الثانية","سبحان ربي الأعلى"],
+ stand:["قم للركعة الثانية","الله أكبر"],
+ fatiha:["اقرأ سورة الفاتحة","ثم آمين"],
+ tash:["التشهد","ثم السلام عليكم ورحمة الله"],
+ done:["تقبّل الله","انتهت الصلاة"]
+};
+
+function buildTimeline(){
+ const sp=S.speed, T=[];
+ const pose=(key,dur,label)=>T.push({kind:"pose",key,dur,label:label||POSE[key][0]});
+ const read=(label,blocks)=>{ // blocks: [{sep}|{ayah}]
+  let t=0;const items=[];
+  blocks.forEach(b=>{
+   if(b.sep){items.push({sep:b.sep});return}
+   const tm=ayahTime(b,sp);
+   items.push({a:b,start:t,read:tm.read,dur:tm.read+tm.breath+(b.extra||0)});
+   t+=tm.read+tm.breath+(b.extra||0);
+  });
+  T.push({kind:"read",label,items,dur:t});
+ };
+ const fatihaTime=FATIHA.reduce((s,a)=>{const x=ayahTime(a,sp);return s+x.read+x.breath},0)+AMEEN/sp;
+ const fat=()=>FATIHA.map((a,i)=>i===6?Object.assign({},a,{extra:AMEEN/sp}):a);
+
+ if(S.d_ready>0)pose("ready",S.d_ready);
+ if(S.d_takbir>0)pose("takbir",S.d_takbir);
+ // الركعة الأولى
+ if(S.showFatiha) read("الركعة الأولى · الفاتحة ثم الفرقان",[{sep:"سورة الفاتحة"},...fat(),{sep:"سورة الفرقان · من الآية ٦١ إلى آخرها"},...FURQAN]);
+ else {pose("fatiha",fatihaTime,"الركعة الأولى · الفاتحة"); read("الركعة الأولى · سورة الفرقان",[{sep:"سورة الفرقان · من الآية ٦١ إلى آخرها"},...FURQAN]);}
+ pose("ruku",S.d_ruku);pose("rise",S.d_rise);pose("sujud1",S.d_sujud);pose("jalsa",S.d_jalsa);pose("sujud2",S.d_sujud);
+ pose("stand",S.d_stand);
+ // الركعة الثانية
+ const mu=[{sep:"سورة المؤمنون · من أولها إلى ﴿فتبارك الله أحسن الخالقين﴾"},BASMALA,...MUMINUN];
+ if(S.showFatiha) read("الركعة الثانية · الفاتحة ثم المؤمنون",[{sep:"سورة الفاتحة"},...fat(),...mu]);
+ else {pose("fatiha",fatihaTime,"الركعة الثانية · الفاتحة"); read("الركعة الثانية · سورة المؤمنون",mu);}
+ pose("ruku",S.d_ruku);pose("rise",S.d_rise);pose("sujud1",S.d_sujud);pose("jalsa",S.d_jalsa);pose("sujud2",S.d_sujud);
+ pose("tash",S.d_tash);
+ let t=0;T.forEach(seg=>{seg.t0=t;t+=seg.dur});
+ return {segs:T,total:t};
+}
+
+/* ---------------- شاشة الإعداد ---------------- */
+const $=id=>document.getElementById(id);
+const nums=["d_ready","d_takbir","d_ruku","d_rise","d_sujud","d_jalsa","d_stand","d_tash"];
+function syncInputs(){
+ $("speed").value=S.speed;$("orient").value=S.orient;$("size").value=S.size;$("showFatiha").checked=S.showFatiha;
+ nums.forEach(k=>$(k).value=S[k]);renderPlan();
+}
+function renderPlan(){
+ $("speedOut").textContent=AR(Math.round(S.speed*100))+"٪";$("liveSpeed").textContent=AR(Math.round(S.speed*100))+"٪";
+ $("sizeOut").textContent=AR(S.size);
+ const {segs,total}=buildTimeline();
+ const sum=f=>segs.filter(f).reduce((s,x)=>s+x.dur,0);
+ const r1End=segs.findIndex(s=>s.key==="stand");
+ const r1=segs.slice(0,r1End+1).reduce((s,x)=>s+x.dur,0);
+ $("plan").innerHTML=
+  `<div class="row"><span>الركعة الأولى</span><span>${fmt(r1)}</span></div>`+
+  `<div class="row"><span>الركعة الثانية مع التشهد</span><span>${fmt(total-r1)}</span></div>`+
+  `<div class="row"><span>وقت القراءة وحده</span><span>${fmt(sum(s=>s.kind==="read"||s.key==="fatiha"))}</span></div>`+
+  `<div class="row tot"><span>المدة الكاملة</span><span>${fmt(total)}</span></div>`;
+}
+$("speed").addEventListener("input",e=>{S.speed=+e.target.value;save();renderPlan()});
+$("size").addEventListener("input",e=>{S.size=+e.target.value;save();renderPlan()});
+$("orient").addEventListener("change",e=>{S.orient=e.target.value;save()});
+$("showFatiha").addEventListener("change",e=>{S.showFatiha=e.target.checked;save();renderPlan()});
+nums.forEach(k=>$(k).addEventListener("input",e=>{const v=Math.max(0,Math.min(300,parseFloat(e.target.value)||0));S[k]=v;save();renderPlan()}));
+syncInputs();
+
+/* ---------------- العرض ---------------- */
+let TL=null, idx=0, segStart=0, paused=false, pausedAt=0, raf=0, wake=null, ayEls=[];
+const track=$("track"), view=$("view");
+
+async function keepAwake(){try{if("wakeLock"in navigator)wake=await navigator.wakeLock.request("screen")}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&!$("stage").hidden)keepAwake()});
+
+function renderSeg(){
+ const seg=TL.segs[idx];
+ $("phase").textContent=seg.label;
+ if(seg.kind==="pose"){
+  $("pose").hidden=false;
+  $("poseName").textContent=seg.label.includes("·")?POSE[seg.key][0]:seg.label;
+  $("poseHint").textContent=POSE[seg.key][1];
+  track.innerHTML="";ayEls=[];
+ }else{
+  $("pose").hidden=true;
+  track.style.fontSize=S.size+"px";
+  track.innerHTML=seg.items.map(it=>it.sep?`<div class="sep">${it.sep}</div>`:
+   `<div class="ay">${it.a.t}${it.a.n?` <span class="n">﴿${AR(it.a.n)}﴾</span>`:""}</div>`).join("");
+  const els=track.children;ayEls=[];
+  seg.items.forEach((it,i)=>{if(!it.sep)ayEls.push({el:els[i],it})});
+ }
+}
+function lineY(){return view.clientHeight*0.36}
+$("guide").style.top="36%";
+
+function tick(now){
+ raf=requestAnimationFrame(tick);
+ if(paused)return;
+ let seg=TL.segs[idx], el=(now-segStart)/1000;
+ if(el>=seg.dur){
+  if(idx<TL.segs.length-1){idx++;segStart+=seg.dur*1000;renderSeg();seg=TL.segs[idx];el=(now-segStart)/1000}
+  else return finish();
+ }
+ const total=seg.t0+el;
+ $("prog").firstElementChild.style.width=(total/TL.total*100)+"%";
+ $("remain").textContent=fmt(TL.total-total);
+ if(seg.kind==="pose"){
+  const left=seg.dur-el, C=2*Math.PI*54;
+  const c=document.querySelector("#ring .fgc");c.style.strokeDasharray=C;c.style.strokeDashoffset=C*(el/seg.dur);
+  $("ringT").textContent=AR(Math.ceil(left));
+ }else{
+  // إيجاد الآية الحالية وموقعها
+  let cur=ayEls.length-1;
+  for(let i=0;i<ayEls.length;i++){if(el<ayEls[i].it.start+ayEls[i].it.dur){cur=i;break}}
+  const {el:node,it}=ayEls[cur];
+  const p=Math.min(1,Math.max(0,(el-it.start)/it.read));
+  // من بداية الآية (مع أي فاصل قبلها) إلى نهايتها
+  const prev=node.previousElementSibling;
+  const startY=(prev&&prev.classList.contains("sep"))?prev.offsetTop:node.offsetTop, endY=node.offsetTop+node.offsetHeight;
+  const y=startY+(endY-startY)*p;
+  track.style.transform=`translateY(${lineY()-y}px)`;
+  ayEls.forEach((x,i)=>x.el.classList.toggle("on",i===cur));
+ }
+}
+function start(fromIdx){
+ TL=buildTimeline();idx=fromIdx||0;
+ segStart=performance.now();paused=false;$("paused").hidden=true;
+ renderSeg();cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
+ $("tapHint").style.opacity=1;setTimeout(()=>$("tapHint").style.opacity=0,4000);
+}
+function jump(i){
+ idx=Math.max(0,Math.min(TL.segs.length-1,i));renderSeg();
+ segStart=performance.now();pausedAt=segStart;
+}
+function finish(){
+ cancelAnimationFrame(raf);raf=0;
+ $("pose").hidden=false;track.innerHTML="";
+ $("poseName").textContent=POSE.done[0];$("poseHint").textContent=POSE.done[1];
+ $("ringT").textContent="✓";document.querySelector("#ring .fgc").style.strokeDashoffset=0;
+ $("phase").textContent="انتهت";$("remain").textContent=fmt(0);
+ $("prog").firstElementChild.style.width="100%";
+ try{wake&&wake.release()}catch(e){}
+ setTimeout(()=>{paused=true;$("paused").hidden=false;$("resume").hidden=true},2500);
+}
+function pause(){if(paused)return;paused=true;pausedAt=performance.now();$("paused").hidden=false;$("resume").hidden=false}
+function resume(){if(!paused)return;segStart+=performance.now()-pausedAt;paused=false;$("paused").hidden=true;if(!raf)raf=requestAnimationFrame(tick)}
+
+function applyOrient(){
+ const st=$("stage");st.classList.remove("rotL","rotR");st.style.width="";st.style.height="";
+ if(S.orient!=="portrait"&&innerHeight>innerWidth){
+  st.classList.add(S.orient==="right"?"rotR":"rotL");
+  st.style.width=innerHeight+"px";st.style.height=innerWidth+"px";
+ }
+}
+window.addEventListener("resize",()=>{if(!$("stage").hidden)applyOrient()});
+function setSpeed(v){
+ S.speed=Math.round(Math.max(0.5,Math.min(3,v))*10)/10;save();syncInputs();
+ if(!TL)return;
+ const ref=paused?pausedAt:performance.now(), seg=TL.segs[idx];
+ const frac=Math.min(1,(ref-segStart)/1000/seg.dur);
+ TL=buildTimeline();segStart=ref-frac*TL.segs[idx].dur*1000;renderSeg();
+}
+$("slower").addEventListener("click",()=>setSpeed(S.speed-0.1));
+$("faster").addEventListener("click",()=>setSpeed(S.speed+0.1));
+$("go").addEventListener("click",async()=>{
+ $("setup").hidden=true;$("stage").hidden=false;applyOrient();keepAwake();
+ try{if(document.fonts&&document.fonts.load){await document.fonts.load(S.size+'px "Amiri Quran"',"بسم")}}catch(e){}
+ start(0);
+});
+view.addEventListener("click",e=>{if(e.target.closest("#paused"))return;pause()});
+$("resume").addEventListener("click",resume);
+$("prev").addEventListener("click",()=>{jump(idx-1);$("resume").hidden=false});
+$("next").addEventListener("click",()=>{jump(idx+1);$("resume").hidden=false});
+$("restart").addEventListener("click",()=>start(0));
+$("exit").addEventListener("click",()=>{cancelAnimationFrame(raf);raf=0;try{wake&&wake.release()}catch(e){}$("stage").hidden=true;$("setup").hidden=false});
+})();
+</script>
+</body>
+</html>

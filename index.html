@@ -17,6 +17,9 @@
   --ui:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
   color-scheme:dark;
 }
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html,body{height:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--ui);margin:0;overflow:hidden;-webkit-tap-highlight-color:transparent}
 button,input{font-family:inherit}
